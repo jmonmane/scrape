@@ -10,6 +10,17 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
+func getLink(r *html.Node) (s string) {
+	buttons := scrape.FindAll(r, scrape.ByClass("downloadbtn"))
+	for _, button := range buttons {
+		windowLocation := scrape.Attr(button, "onclick")
+		link := strings.Split(windowLocation, "=")[1]
+		s := strings.Trim(link, "'")
+		return s
+	}
+	return
+}
+
 func main() {
 	// request and parse the front page
 	resp, err := http.Get("https://torguard.net/downloads.php")
@@ -21,21 +32,13 @@ func main() {
 		panic(err)
 	}
 
-	// define a matcher
-	matcher := func(n *html.Node) bool {
-		// must check for nil values
-		// if n.DataAtom == atom.A && n.Parent != nil && n.Parent.Parent != nil {
-		if n.DataAtom == atom.Tr {
-			return true
+	rows := scrape.FindAll(root, scrape.ByTag(atom.Tr))
+	for _, row := range rows {
+		if strings.Contains(scrape.Text(row), "DEBIAN x64") {
+			l := getLink(row)
+			fmt.Printf("%s \n %s \n", scrape.Text(row), l)
 		}
-		return false
-	}
-	// grab all articles and print them
-	articles := scrape.FindAll(root, matcher)
-	for _, article := range articles {
-		if strings.Contains(scrape.Text(article), "DEBIAN x64Bit") {
-			fmt.Printf("%s\n", scrape.Text(article))
-		}
-		//fmt.Printf("%2d %s (%s)\n", i, scrape.Text(article), scrape.Attr(article, "href"))
 	}
 }
+
+//fmt.Printf("%2d %s (%s)\n", i, scrape.Text(article), scrape.Attr(article, "href"))
